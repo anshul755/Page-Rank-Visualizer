@@ -1,11 +1,37 @@
 package net.pagerankvisualizer.pageRankVisualizer.service;
+import java.time.LocalDateTime;
 import java.util.*;
+
+import org.bson.types.ObjectId;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import net.pagerankvisualizer.pageRankVisualizer.entity.PageRankVisualizerEntity;
+import net.pagerankvisualizer.pageRankVisualizer.repository.PageRankEntryRepository;
 import net.pagerankvisualizer.pageRankVisualizer.structure.Edge;
 
 @Service
 public class PageRankService {
+
+    @Autowired
+    private PageRankEntryRepository pageRankEntryRepository;
+
+    public ObjectId calculateAndSave(PageRankVisualizerEntity graph,double dampingFactor,int maxIterations){
+        Map<String,Double> result=calculatePageRank(graph,dampingFactor,maxIterations);
+        graph.setRanks(result);
+        graph.setDate(LocalDateTime.now());
+        PageRankVisualizerEntity savedgraph=pageRankEntryRepository.save(graph);
+
+        return savedgraph.getId();
+    }
+
+    public List<PageRankVisualizerEntity> getAll(){
+        return pageRankEntryRepository.findAll();
+    }
+
+    public Optional<PageRankVisualizerEntity> findById(ObjectId id){
+        return pageRankEntryRepository.findById(id);
+    }
+
     public Map<String,Double> calculatePageRank(PageRankVisualizerEntity graph,double dampingFactor,int maxIterations){
         List<String>vertices=graph.getVertices();
         List<Edge>edges=graph.getEdges();

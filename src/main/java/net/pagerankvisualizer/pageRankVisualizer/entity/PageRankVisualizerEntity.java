@@ -1,4 +1,5 @@
 package net.pagerankvisualizer.pageRankVisualizer.entity;
+import java.time.LocalDateTime;
 import java.util.*;
 
 import org.bson.types.ObjectId;
@@ -14,6 +15,8 @@ public class PageRankVisualizerEntity {
     private ObjectId id;
     private List<String> vertices;
     private List<Edge> edges;
+    private Map<String,Double>ranks;
+    private LocalDateTime date;
 
     public ObjectId getId(){
         return id;
@@ -37,5 +40,20 @@ public class PageRankVisualizerEntity {
     
     public void setEdges(List<Edge> edges){
         this.edges=edges;
+    }
+
+    public Map<String,Double> getRanks(){
+        return ranks;
+    }
+    public void setRanks(Map<String,Double> ranks){
+        this.ranks=ranks;
+    }
+
+    public LocalDateTime getDate(){
+        return date;
+    }
+
+    public void setDate(LocalDateTime date){
+        this.date=date;
     }
 }
