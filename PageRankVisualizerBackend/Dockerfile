@@ -7,6 +7,10 @@ COPY mvnw pom.xml ./
 
 RUN chmod +x mvnw
 
+RUN apk add --no-cache ca-certificates openssl && update-ca-certificates
+
+RUN ./mvnw dependency:go-offline
+
 COPY src ./src
 
 RUN ./mvnw clean package -DskipTests
