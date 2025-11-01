@@ -11,29 +11,28 @@
         <relativePath/>
     </parent>
 
-    <groupId>net.engineeringdigest</groupId>
-    <artifactId>journalApp</artifactId>
+    <groupId>net.pagerankvisualizer</groupId>
+    <artifactId>PageRankVisualizerApp</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>Journal App</name>
-    <description>E2EE Journal App</description>
+    <name>Page Rank Visualizer App</name>
+    <description>Page Rank Visualizer App is an interactive tool that visualizes how Google’s PageRank algorithm ranks web pages based on link structures. It lets users create networks, run the algorithm, and see how ranks change in real time.</description>
 
     <properties>
-        <java.version>1.8</java.version>
+        <java.version>17</java.version>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+
         <sonar.organization>engineering-digest</sonar.organization>
         <sonar.host.url>https://sonarcloud.io</sonar.host.url>
-        <maven.compiler.source>1.8</maven.compiler.source>
-        <maven.compiler.target>1.8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
 
     <dependencies>
-        <!-- Core Web -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
 
-        <!-- MongoDB (compatible with Boot 2.7.x and Java 8) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-mongodb</artifactId>
@@ -44,23 +43,16 @@
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
         </dependency>
-    
-      <dependency>
-        <groupId>org.mongodb</groupId>
-        <artifactId>mongo-java-driver</artifactId>
-        <version>3.11.0</version>
-      </dependency>
-    </dependencies>
+
+        </dependencies>
 
     <build>
         <plugins>
-            <!-- Spring Boot -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>
             </plugin>
 
-            <!-- SonarQube -->
             <plugin>
                 <groupId>org.sonarsource.scanner.maven</groupId>
                 <artifactId>sonar-maven-plugin</artifactId>
