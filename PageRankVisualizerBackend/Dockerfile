@@ -1,12 +1,14 @@
-FROM maven:3.9.11-eclipse-temurin-8-alpine AS builder
+FROM eclipse-temurin:8-jdk-alpine AS builder
 WORKDIR /app
+
+RUN apk add --no-cache maven
 
 COPY pom.xml ./
 
-RUN mvn -B dependency:go-offline
+RUN mvn -B -Dhttps.protocols=TLSv1.2 dependency:go-offline
 
 COPY src ./src
-RUN mvn -B clean package -DskipTests
+RUN mvn -B -Dhttps.protocols=TLSv1.2 clean package -DskipTests
 
 FROM eclipse-temurin:8-jre-alpine
 WORKDIR /app
