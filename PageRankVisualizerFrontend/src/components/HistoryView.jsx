@@ -9,9 +9,7 @@ const HistoryView = ({ isOpen, onClose, dispatch }) => {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (isOpen) {
-      fetchHistory();
-    }
+    if (isOpen) fetchHistory();
   }, [isOpen]);
 
   const fetchHistory = async () => {
@@ -19,8 +17,9 @@ const HistoryView = ({ isOpen, onClose, dispatch }) => {
     setError(null);
     try {
       const data = await apiClient.getHistory();
-      // Sort by date (newest first)
-      const sorted = data.sort((a, b) => new Date(b.date) - new Date(a.date));
+      const list = Array.isArray(data) ? data : data.history || [];
+      // Sorting is correct for ISO date strings
+      const sorted = list.sort((a, b) => new Date(b.date) - new Date(a.date));
       setHistory(sorted);
     } catch (err) {
       setError("Failed to load history: " + err.message);
@@ -34,13 +33,11 @@ const HistoryView = ({ isOpen, onClose, dispatch }) => {
       const data = await apiClient.getHistoryById(id);
       const { nodes, edges } = deserializeFromBackend(data, 800, 600);
 
-      // Load graph into state
       dispatch({
         type: ACTIONS.LOAD_GRAPH,
         payload: { nodes, edges },
       });
 
-      // Update ranks
       if (data.ranks) {
         dispatch({
           type: ACTIONS.UPDATE_NODE_RANKS,
@@ -58,15 +55,41 @@ const HistoryView = ({ isOpen, onClose, dispatch }) => {
     }
   };
 
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+  // Simplified formatDate to correctly handle the ISO date string from the database.
+  const formatDate = (dateValue) => {
+    if (!dateValue) return "Unknown";
+    const date = new Date(dateValue); // dateValue is now expected to be an ISO string
+    return isNaN(date.getTime())
+      ? "Invalid date"
+      : date.toLocaleString("en-US", {
+          year: "numeric",
+          month: "short",
+          day: "numeric",
+          hour: "2-digit",
+          minute: "2-digit",
+        });
+  };
+
+  // Helper to get a display-friendly ID string
+  const getDisplayId = (entry) => {
+    return entry._id || (entry.id && entry.id.date ? entry.id.date : "N/A");
+  };
+
+  // Helper to get a unique key (prefer _id, then id.timestamp as string, fallback to index)
+  const getUniqueKey = (entry, idx) => {
+    if (entry._id) return entry._id;
+    if (entry.id && typeof entry.id.timestamp === "number") {
+      return entry.id.timestamp.toString();
+    }
+    if (entry.id && entry.id.date) {
+      return entry.id.date;
+    }
+    return `fallback-${idx}`;
+  };
+
+  // Helper to get the ID for loading the graph (prefer _id, then id.date as it's the ISO string likely expected by API)
+  const getLoadId = (entry) => {
+    return entry._id || (entry.id && entry.id.date ? entry.id.date : null);
   };
 
   if (!isOpen) return null;
@@ -76,12 +99,10 @@ const HistoryView = ({ isOpen, onClose, dispatch }) => {
       <div className="bg-white rounded-lg shadow-xl w-full max-w-4xl max-h-[80vh] flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
-          <h2 className="text-2xl font-bold text-gray-800">
-            Calculation History
-          </h2>
+          <h2 className="text-2xl font-bold text-gray-800">Calculation History</h2>
           <button
             onClick={onClose}
-            className="text-gray-500 hover:text-gray-700 text-2xl font-bold"
+            className="text-gray-500 hover:text-gray-700 text-2xl font-bold cursor-pointer"
           >
             ✕
           </button>
@@ -113,69 +134,68 @@ const HistoryView = ({ isOpen, onClose, dispatch }) => {
 
           {!loading && !error && history.length > 0 && (
             <div className="space-y-4">
-              {history.map((entry) => (
-                <div
-                  key={entry.id}
-                  className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h3 className="font-semibold text-gray-800">
-                          Graph Calculation
-                        </h3>
-                        <span className="text-xs text-gray-500 font-mono">
-                          ID: {entry.id}
-                        </span>
-                      </div>
+              {history.map((entry, idx) => {
+                const displayId = getDisplayId(entry);
+                const loadId = getLoadId(entry);
+                const uniqueKey = getUniqueKey(entry, idx);
 
-                      <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 mb-3">
-                        <div>
-                          <span className="font-medium">Date:</span>{" "}
-                          {formatDate(entry.date)}
-                        </div>
-                        <div>
-                          <span className="font-medium">Nodes:</span>{" "}
-                          {entry.vertices?.length || 0}
-                        </div>
-                        <div>
-                          <span className="font-medium">Edges:</span>{" "}
-                          {entry.edges?.length || 0}
-                        </div>
-                        <div>
-                          <span className="font-medium">Ranks:</span>{" "}
-                          {entry.ranks ? Object.keys(entry.ranks).length : 0}
-                        </div>
-                      </div>
-
-                      {/* Top 3 nodes preview */}
-                      {entry.ranks && (
-                        <div className="bg-gray-50 rounded p-2 text-xs">
-                          <span className="font-medium text-gray-700">
-                            Top nodes:{" "}
+                return (
+                  <div
+                    key={uniqueKey}
+                    className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-3 mb-2">
+                          <h3 className="font-semibold text-gray-800">
+                            Graph Calculation
+                          </h3>
+                          <span className="text-xs text-gray-500 font-mono">
+                            ID: {displayId}
                           </span>
-                          {Object.entries(entry.ranks)
-                            .sort(([, a], [, b]) => b - a)
-                            .slice(0, 3)
-                            .map(([node, rank], idx) => (
-                              <span key={node} className="text-gray-600">
-                                {idx > 0 && ", "}
-                                {node} ({rank.toFixed(4)})
-                              </span>
-                            ))}
                         </div>
-                      )}
-                    </div>
 
-                    <button
-                      onClick={() => handleLoadGraph(entry.id)}
-                      className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors font-medium text-sm"
-                    >
-                      Load Graph
-                    </button>
+                        <div className="grid grid-cols-2 gap-4 text-sm text-gray-600 mb-3">
+                          <div>
+                            <span className="font-medium">Date:</span>{" "}
+                            {formatDate(entry.date)}
+                          </div>
+                          <div>
+                            <span className="font-medium">Nodes:</span>{" "}
+                            {entry.vertices?.length || 0}
+                          </div>
+                          <div>
+                            <span className="font-medium">Edges:</span>{" "}
+                            {entry.edges?.length || 0}
+                          </div>
+                          <div>
+                            <span className="font-medium">Ranks:</span>{" "}
+                            {entry.ranks ? Object.keys(entry.ranks).length : 0}
+                          </div>
+                        </div>
+
+                        {/* Top 3 nodes preview */}
+                        {entry.ranks && typeof entry.ranks === "object" && (
+                          <div className="bg-gray-50 rounded p-2 text-xs">
+                            <span className="font-medium text-gray-700">
+                              Top nodes:{" "}
+                            </span>
+                            {Object.entries(entry.ranks)
+                              .sort(([, a], [, b]) => Number(b) - Number(a))
+                              .slice(0, 3)
+                              .map(([node, rank], idx) => (
+                                <span key={node} className="text-gray-600">
+                                  {idx > 0 && ", "}
+                                  {node} ({Number(rank).toFixed(4)})
+                                </span>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -183,6 +203,7 @@ const HistoryView = ({ isOpen, onClose, dispatch }) => {
         {/* Footer */}
         <div className="p-6 border-t border-gray-200 bg-gray-50">
           <button
+            type="button"
             onClick={fetchHistory}
             disabled={loading}
             className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 transition-colors font-medium disabled:bg-gray-400"

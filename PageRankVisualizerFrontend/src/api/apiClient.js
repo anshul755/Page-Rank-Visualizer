@@ -1,4 +1,4 @@
-const BASE_URL = "http://localhost:8080";
+const BASE_URL = import.meta.env.VITE_PRODUCTION_URL;
 
 /**
  * API Client for PageRank Visualizer Backend

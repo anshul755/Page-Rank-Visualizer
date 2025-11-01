@@ -1,4 +1,5 @@
 import { useReducer, useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { graphReducer, initialState, ACTIONS } from "./state/graphReducer";
 import { serializeForBackend, validateGraph } from "./utils/serialize";
 import { apiClient } from "./api/apiClient";
@@ -15,7 +16,6 @@ function App() {
   const [calculating, setCalculating] = useState(false);
 
   const handleCalculate = async () => {
-    // Validate graph
     const validation = validateGraph(state);
     if (!validation.valid) {
       alert("Cannot calculate PageRank:\n\n" + validation.errors.join("\n"));
@@ -25,20 +25,15 @@ function App() {
     setCalculating(true);
 
     try {
-      // Serialize graph for backend
       const graphData = serializeForBackend(state);
-
-      // Call backend to calculate PageRank
       const id = await apiClient.calculatePageRank(
         graphData,
         state.dampingFactor,
         state.maxIterations
       );
 
-      // Fetch the result with ranks
       const result = await apiClient.getHistoryById(id);
 
-      // Update nodes with ranks
       if (result.ranks) {
         dispatch({
           type: ACTIONS.UPDATE_NODE_RANKS,
@@ -60,26 +55,27 @@ function App() {
     }
   };
 
-  const handleViewHistory = () => {
-    setShowHistory(true);
-  };
-
-  const handleCloseHistory = () => {
-    setShowHistory(false);
-  };
-
-  const handleCloseResults = () => {
-    setCalculationId(null);
-  };
+  const handleToggleHistory = () => setShowHistory((prev) => !prev);
+  const handleCloseResults = () => setCalculationId(null);
 
   return (
-    <div className="h-screen flex flex-col bg-gray-100">
+    <div className="h-screen flex flex-col bg-gray-100 relative overflow-hidden">
       {/* Header */}
-      <header className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-4 shadow-lg">
-        <h1 className="text-2xl font-bold">PageRank Visualizer</h1>
-        <p className="text-sm text-blue-100 mt-1">
-          Interactive Graph Editor & PageRank Algorithm Visualization
-        </p>
+      <header className="bg-gradient-to-r from-blue-600 to-purple-600 text-white px-6 py-4 shadow-lg flex justify-between items-center">
+        <div>
+          <h1 className="text-2xl font-bold">PageRank Visualizer</h1>
+          <p className="text-sm text-blue-100 mt-1">
+            Interactive Graph Editor & PageRank Algorithm Visualization
+          </p>
+        </div>
+
+        {/* History Toggle Button */}
+        <button
+          onClick={handleToggleHistory}
+          className="bg-white/20 hover:bg-white/30 text-white rounded-lg px-4 py-2 transition"
+        >
+          {showHistory ? "Hide History" : "Show History"}
+        </button>
       </header>
 
       {/* Toolbar */}
@@ -87,51 +83,84 @@ function App() {
         state={state}
         dispatch={dispatch}
         onCalculate={handleCalculate}
-        onViewHistory={handleViewHistory}
+        onViewHistory={handleToggleHistory}
       />
 
       {/* Main Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
         {/* Graph Editor */}
         <GraphEditor state={state} dispatch={dispatch} />
 
         {/* Properties Panel */}
         <PropertiesPanel state={state} dispatch={dispatch} />
+
+        {/* Animated History Sidebar */}
+        <AnimatePresence>
+          {showHistory && (
+              <HistoryView
+                isOpen={true}
+                onClose={handleToggleHistory}
+                dispatch={dispatch}
+                onSelectHistoryItem={async (item) => {
+                  try {
+                    const id = item?.id;
+                    if (!id) return;
+                    const result = await apiClient.getHistoryById(id);
+                    if (result.ranks) {
+                      dispatch({
+                        type: ACTIONS.UPDATE_NODE_RANKS,
+                        payload: result.ranks,
+                      });
+                      setCalculationId(id);
+                    }
+                    setShowHistory(false);
+                  } catch (err) {
+                    console.error("Error loading history item:", err);
+                  }
+                }}
+              />
+          )}
+        </AnimatePresence>
       </div>
 
       {/* Results Panel */}
-      {calculationId && (
-        <ResultsPanel
-          state={state}
-          calculationId={calculationId}
-          onClose={handleCloseResults}
-        />
-      )}
-
-      {/* History Modal */}
-      <HistoryView
-        isOpen={showHistory}
-        onClose={handleCloseHistory}
-        dispatch={dispatch}
-      />
+      <AnimatePresence>
+        {calculationId && (
+          <motion.div
+            initial={{ y: "100%" }}
+            animate={{ y: 0 }}
+            exit={{ y: "100%" }}
+            transition={{ type: "spring", stiffness: 120, damping: 20 }}
+            className="absolute bottom-0 left-0 right-0 z-30"
+          >
+            <ResultsPanel
+              state={state}
+              calculationId={calculationId}
+              onClose={handleCloseResults}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Loading Overlay */}
       {calculating && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 shadow-xl">
-            <div className="flex items-center gap-4">
-              <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
-              <div>
-                <p className="font-semibold text-gray-800">
-                  Calculating PageRank...
-                </p>
-                <p className="text-sm text-gray-500">
-                  Damping: {state.dampingFactor}, Iterations:{" "}
-                  {state.maxIterations}
-                </p>
-              </div>
+          <motion.div
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            className="bg-white rounded-lg p-6 shadow-xl flex items-center gap-4"
+          >
+            <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+            <div>
+              <p className="font-semibold text-gray-800">
+                Calculating PageRank...
+              </p>
+              <p className="text-sm text-gray-500">
+                Damping: {state.dampingFactor}, Iterations:{" "}
+                {state.maxIterations}
+              </p>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
     </div>
