@@ -5,11 +5,12 @@ WORKDIR /app
 RUN apk add --no-cache maven ca-certificates openssl && update-ca-certificates
 
 COPY pom.xml ./
-RUN mvn dependency:go-offline
+
+RUN MAVEN_OPTS="-Dhttps.protocols=TLSv1.2" mvn dependency:go-offline
 
 COPY src ./src
 
-RUN mvn clean package -DskipTests
+RUN MAVEN_OPTS="-Dhttps.protocols=TLSv1.2" mvn clean package -DskipTests
 
 ENV PORT=8080
 EXPOSE 8080
