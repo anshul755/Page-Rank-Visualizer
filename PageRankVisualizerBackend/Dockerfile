@@ -14,4 +14,4 @@ RUN MAVEN_OPTS="-Dhttps.protocols=TLSv1.2" mvn clean package -DskipTests
 
 ENV PORT=8080
 EXPOSE 8080
-CMD ["java", "-jar", "target/*.jar"]
+CMD ["java", "-jar", "target/journalApp-0.0.1-SNAPSHOT.jar"]
