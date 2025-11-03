@@ -201,9 +201,6 @@ spring.data.mongodb.auto-index-creation=true
 Create `PageRankVisualizerFrontend/.env`:
 
 ```env
-# Backend API endpoint
-REACT_APP_API_URL=http://localhost:8080
-
 # For Hosted Backend API endpoint
 VITE_PRODUCTION_URL={YOUR_API_URL}
 ```
