@@ -310,5 +310,3 @@ We welcome contributions! Here's how:
 - Verify graph structure (no isolated nodes, edges are directed correctly)
 - Check damping factor (should be between 0 and 1, typically 0.85)
 - Increase max iterations if not converging
-
----
