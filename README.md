@@ -312,9 +312,3 @@ We welcome contributions! Here's how:
 - Increase max iterations if not converging
 
 ---
-
-## Contact
-
-Created by [anshul755](https://github.com/anshul755) - feel free to reach out!
-
-**Repository:** https://github.com/anshul755/Page-Rank-Visualizer
